@@ -6,6 +6,7 @@ use serenity::prelude::*;
 
 mod commands;
 mod network;
+mod data;
 
 struct Handler;
 
@@ -25,6 +26,10 @@ impl EventHandler for Handler {
 #[tokio::main]
 async fn main() {
     let token = env::var("DISCORD_BOT_TOKEN").expect("No token in environment.");
+
+    if let Err(err) = data::database_connection::connect_database().await {
+        println!("Error connecting to database: {:?}", err);
+    };
 
     let intents = GatewayIntents::GUILD_MESSAGES
         | GatewayIntents::DIRECT_MESSAGES 

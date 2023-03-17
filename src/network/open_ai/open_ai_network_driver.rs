@@ -7,7 +7,7 @@ struct BearerToken {
 }
 
 impl BearerToken {
-    fn new(api_key: &String) -> Self {
+    fn new(api_key: String) -> Self {
         Self {
             token: api_key.into(),
         }
@@ -89,10 +89,10 @@ fn create_client() -> reqwest::Client {
 }
 
 impl OpenAIClient {
-    pub fn new(api_key: &String, base_url: &String) -> Self {
+    pub fn new(base_url: &String) -> Self {
         Self {
             base_url: base_url.into(),
-            bearer_token: BearerToken::new(api_key),
+            bearer_token: BearerToken::new(env::var("OPENAI_API_KEY").expect("OpenAI API key not specified for environment.")),
             client: create_client(),
         }
     }
