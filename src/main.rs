@@ -12,7 +12,9 @@ struct Handler;
 #[async_trait]
 impl EventHandler for Handler {
     async fn message(&self, ctx: Context, msg: Message) {
-        commands::mention::on_mention(&ctx, &msg).await;
+        if let Err(err) = commands::mention::on_mention(&ctx, &msg).await {
+            println!("Mention reply failed: {:?}", err);
+        };
     }
     
     async fn ready(&self, _: Context, ready: Ready) {
