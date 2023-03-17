@@ -14,8 +14,7 @@ pub async fn on_mention(ctx: &Context, msg: &Message) -> Result<(), SerenityErro
                 .rate_limit_per_user(0)
                 .kind(serenity::model::prelude::ChannelType::PublicThread))
                 .await?;
-        Ok(())
-    } else {
-        Ok(())
     }
+    
+    Ok(())
 }
