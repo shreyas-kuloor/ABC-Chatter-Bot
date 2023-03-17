@@ -3,11 +3,19 @@ use serenity::{
     model::channel::Message,
 };
 
-pub async fn on_mention(ctx: &Context, msg: &Message) {
-    let bot_user_id = ctx.cache.current_user_id();
-    if msg.mentions.iter().any(|user| user.id == bot_user_id) {
-        if let Err(err) = msg.reply_ping(ctx, "Hello!").await {
-            println!("Error replying to mention: {:?}", err);
-        };
+pub async fn on_mention(ctx: &Context, msg: &Message) -> Result<(), SerenityError> {
+    if msg.mentions_me(ctx).await? {
+        msg.channel_id.create_public_thread(
+            ctx, 
+            msg.id, 
+            |x| 
+                x.name("Chatting :Chatting:")
+                .auto_archive_duration(60)
+                .rate_limit_per_user(0)
+                .kind(serenity::model::prelude::ChannelType::PublicThread))
+                .await?;
+        Ok(())
+    } else {
+        Ok(())
     }
 }
