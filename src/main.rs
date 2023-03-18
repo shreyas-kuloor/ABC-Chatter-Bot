@@ -10,6 +10,8 @@ use network::open_ai::open_ai_network_driver::OpenAIClient;
 mod commands;
 mod network;
 mod models;
+mod services;
+mod errors;
 
 struct Handler;
 
