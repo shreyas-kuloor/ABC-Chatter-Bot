@@ -2,7 +2,14 @@ use serenity::{
     prelude::*,
     model::channel::Message,
 };
-use crate::models::active_threads::ActiveThreads;
+
+use crate::{
+    models::{
+        active_threads::ActiveThreads, 
+        network_client::NetworkClient,
+    },
+    services::ai_chat_service::send_thread_to_ai
+};
 
 pub async fn on_mention(ctx: &Context, msg: &Message) -> Result<(), SerenityError> {
     let mut data = ctx.data.write().await;
@@ -18,12 +25,23 @@ pub async fn on_mention(ctx: &Context, msg: &Message) -> Result<(), SerenityErro
                 .rate_limit_per_user(0)
                 .kind(serenity::model::prelude::ChannelType::PublicThread))
                 .await?;
+
+        active_threads.push(channel.id);
+        drop(data);
+
+        let data = ctx.data.write().await;
+        let client = data.get::<NetworkClient>().unwrap();
+
+        let thread_messages = vec![msg.clone()];
+        let typing = msg.channel_id.start_typing(&ctx.http)?;
+        
+        let bot_response = send_thread_to_ai(client, ctx, thread_messages).await;
+
+        let _ = typing.stop();
         
         channel
             .send_message(
-                ctx, |m| m.content("Hello! How can I help?")).await?;
-
-        active_threads.push(channel.id);
+                ctx, |m| m.content(bot_response)).await?;
     }
     
     Ok(())

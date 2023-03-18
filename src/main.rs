@@ -4,10 +4,14 @@ use serenity::model::prelude::Ready;
 use serenity::model::channel::Message;
 use serenity::prelude::*;
 use models::active_threads::ActiveThreads;
+use models::network_client::NetworkClient;
+use network::open_ai::open_ai_network_driver::OpenAIClient;
 
 mod commands;
 mod network;
 mod models;
+mod services;
+mod errors;
 
 struct Handler;
 
@@ -32,12 +36,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         | GatewayIntents::DIRECT_MESSAGES 
         | GatewayIntents::MESSAGE_CONTENT; 
 
+    let open_ai_client = OpenAIClient::new(&env::var("OPENAI_BASE_URL")?);
+
     let mut client = Client::builder(token, intents)
         .event_handler(Handler)
         .await?;
     {
         let mut data = client.data.write().await;
         data.insert::<ActiveThreads>(Vec::default());
+        data.insert::<NetworkClient>(open_ai_client);
     }
 
     client.start().await?;
