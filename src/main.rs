@@ -3,18 +3,20 @@ use serenity::async_trait;
 use serenity::model::prelude::Ready;
 use serenity::model::channel::Message;
 use serenity::prelude::*;
+use models::active_threads::ActiveThreads;
 
 mod commands;
 mod network;
+mod models;
 
 struct Handler;
 
 #[async_trait]
 impl EventHandler for Handler {
     async fn message(&self, ctx: Context, msg: Message) {
-        if let Err(err) = commands::mention::on_mention(&ctx, &msg).await {
-            println!("Mention reply failed: {:?}", err);
-        };
+        commands::mention::on_mention(&ctx, &msg).await.unwrap();
+        commands::reply_thread::on_reply_thread(&ctx, &msg).await.unwrap();
+        commands::clear_threads::clear_inactive_threads(&ctx, &msg).await.unwrap();
     }
     
     async fn ready(&self, _: Context, ready: Ready) {
@@ -23,8 +25,8 @@ impl EventHandler for Handler {
 }
 
 #[tokio::main]
-async fn main() {
-    let token = env::var("DISCORD_BOT_TOKEN").expect("No token in environment.");
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let token = env::var("DISCORD_BOT_TOKEN")?;
 
     let intents = GatewayIntents::GUILD_MESSAGES
         | GatewayIntents::DIRECT_MESSAGES 
@@ -32,11 +34,13 @@ async fn main() {
 
     let mut client = Client::builder(token, intents)
         .event_handler(Handler)
-        .await
-        .expect("Error during client creation.");
-
-    if let Err(err) = client.start().await {
-        println!("Client error: {:?}", err);
+        .await?;
+    {
+        let mut data = client.data.write().await;
+        data.insert::<ActiveThreads>(Vec::default());
     }
 
+    client.start().await?;
+
+    Ok(())
 }
