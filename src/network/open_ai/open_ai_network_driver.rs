@@ -14,20 +14,20 @@ impl BearerToken {
     }
 }
 
-struct OpenAIClient {
+pub struct OpenAIClient {
     base_url: String,
     bearer_token: BearerToken,
     client: reqwest::Client,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-struct ChatMessage {
+pub struct ChatMessage {
     role: String,
     content: String,
 }
 
 impl ChatMessage {
-    fn new(role: String, content: String) -> Self {
+    pub fn new(role: String, content: String) -> Self {
         Self {
             role,
             content,
@@ -59,8 +59,7 @@ struct ChatRequest {
 
 impl ChatRequest {
     fn new(existing_messages: &mut Vec<ChatMessage>) -> Self {
-        let model = env::var("OPENAI_MODEL")
-            .expect("OpenAI model not specified for environment.");
+        let model = env::var("OPENAI_MODEL").unwrap();
 
         let mut messages = Vec::new();
         messages.push(ChatMessage::new(String::from("system"), env::var("OPENAI_SYSTEM_CONTENT")
@@ -75,7 +74,7 @@ impl ChatRequest {
 }
     
 #[derive(Serialize, Deserialize, Debug)]
-struct ChatResponse {
+pub struct ChatResponse {
     id: String,
     object: String,
     created: i64,
@@ -92,17 +91,18 @@ impl OpenAIClient {
     pub fn new(base_url: &String) -> Self {
         Self {
             base_url: base_url.into(),
-            bearer_token: BearerToken::new(env::var("OPENAI_API_KEY").expect("OpenAI API key not specified for environment.")),
+            bearer_token: BearerToken::new(env::var("OPENAI_API_KEY").unwrap()),
             client: create_client(),
         }
     }
 
-    async fn post_chat(&self, existing_messages: &mut Vec<ChatMessage>) -> Result<ChatResponse, Error> {
+    pub async fn post_chat(&self, existing_messages: &mut Vec<ChatMessage>) -> Result<ChatResponse, Error> {
         let base_url = &self.base_url;
         let request = ChatRequest::new(existing_messages);
         
         let response = self.client.post(format!("{base_url}/chat/completions"))
             .bearer_auth(&self.bearer_token.token)
+            .json(&request)
             .send()
             .await?;
 
