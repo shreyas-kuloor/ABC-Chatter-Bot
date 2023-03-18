@@ -4,7 +4,6 @@ use serenity::model::prelude::Ready;
 use serenity::model::channel::Message;
 use serenity::prelude::*;
 use models::active_threads::ActiveThreads;
-use models::network_client::NetworkClient;
 
 mod commands;
 mod network;
@@ -39,7 +38,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     {
         let mut data = client.data.write().await;
         data.insert::<ActiveThreads>(Vec::default());
-        println!("Client error: {:?}", err);
     }
 
     client.start().await?;
