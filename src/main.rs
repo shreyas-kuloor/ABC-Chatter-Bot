@@ -1,8 +1,14 @@
 use std::env;
+use log::info;
 use serenity::async_trait;
 use serenity::model::prelude::Ready;
 use serenity::model::channel::Message;
-use serenity::prelude::*;
+use serenity::prelude::{
+    EventHandler,
+    Context,
+    Client,
+    GatewayIntents
+};
 use models::active_threads::ActiveThreads;
 use models::network_client::NetworkClient;
 use network::open_ai::open_ai_network_driver::OpenAIClient;
@@ -24,7 +30,7 @@ impl EventHandler for Handler {
     }
     
     async fn ready(&self, _: Context, ready: Ready) {
-        println!("{} is connected.", ready.user.name);
+        info!("{} is connected.", ready.user.name);
     }
 }
 
@@ -37,6 +43,22 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         | GatewayIntents::MESSAGE_CONTENT; 
 
     let open_ai_client = OpenAIClient::new(&env::var("OPENAI_BASE_URL")?);
+
+    fern::Dispatch::new()
+        .format(|out, message, record| {
+            out.finish(format_args!(
+                "{}[{}][{}] {}",
+                chrono::Local::now().format("[%Y-%m-%d][%H:%M:%S]"),
+                record.target(),
+                record.level(),
+                message
+            ))
+        })
+        .level(log::LevelFilter::Warn)
+        .level_for("abc_chatter_bot", log::LevelFilter::Debug)
+        .chain(std::io::stdout())
+        .chain(fern::log_file("output.log")?)
+        .apply()?;
 
     let mut client = Client::builder(token, intents)
         .event_handler(Handler)
