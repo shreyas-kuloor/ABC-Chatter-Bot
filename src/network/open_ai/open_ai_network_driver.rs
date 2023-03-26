@@ -1,4 +1,6 @@
 use std::env;
+use log::info;
+
 use crate::errors::network_error::{
     NetworkError,
     NetworkErrorType,
@@ -53,9 +55,11 @@ impl OpenAIClient {
             .send()
             .await?;
 
+        info!("OpenAI response received: {:?}", &response);
         match response.status() {
             reqwest::StatusCode::OK => {
                 let parsed_response = response.json::<ChatResponse>().await?;
+                info!("OpenAI response body: {:?}", &parsed_response);
                 Ok(parsed_response)
             },
             reqwest::StatusCode::TOO_MANY_REQUESTS => {
