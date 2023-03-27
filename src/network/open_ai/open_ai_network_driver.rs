@@ -49,6 +49,7 @@ impl OpenAIClient {
         let base_url = &self.base_url;
         let request = ChatRequest::new(existing_messages);
         
+        info!("OpenAI request body: {:?}", &request);
         let response = self.client.post(format!("{base_url}/chat/completions"))
             .bearer_auth(&self.bearer_token.token)
             .json(&request)

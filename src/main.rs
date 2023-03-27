@@ -27,6 +27,7 @@ impl EventHandler for Handler {
         commands::mention::on_mention(&ctx, &msg).await.unwrap();
         commands::reply_thread::on_reply_thread(&ctx, &msg).await.unwrap();
         commands::clear_threads::clear_inactive_threads(&ctx, &msg).await.unwrap();
+        commands::random_react::random_react_to_message(&ctx, &msg).await.unwrap();
     }
     
     async fn ready(&self, _: Context, ready: Ready) {
