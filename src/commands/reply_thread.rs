@@ -1,9 +1,11 @@
-use std::env;
+use std::{
+    env,
+    error::Error,
+};
 
 use serenity::{
     client::Context,
     model::channel::Message,
-    prelude::SerenityError,
 };
 
 use crate::{
@@ -14,7 +16,7 @@ use crate::{
     services::ai_chat_service::send_thread_to_ai
 };
 
-pub async fn on_reply_thread(ctx: &Context, msg: &Message) -> Result<(), SerenityError> {
+pub async fn on_reply_thread(ctx: &Context, msg: &Message) -> Result<(), Box<dyn Error>> {
     let data = ctx.data.write().await;
     let open_ai_client = data.get::<NetworkClient>().unwrap();
     let active_threads = data.get::<ActiveThreads>().unwrap();
@@ -39,7 +41,7 @@ pub async fn on_reply_thread(ctx: &Context, msg: &Message) -> Result<(), Serenit
         thread_messages.reverse();
 
         let typing = msg.channel_id.start_typing(&ctx.http)?;
-        let bot_response = send_thread_to_ai(open_ai_client, ctx, thread_messages).await;
+        let bot_response = send_thread_to_ai(open_ai_client, ctx, thread_messages).await?;
 
         let _ = typing.stop();
         msg.channel_id.send_message(ctx, |m| m.content(bot_response)).await?;

@@ -1,3 +1,5 @@
+use std::error::Error;
+
 use serenity::{
     model::prelude::Message, 
     prelude::Context
@@ -14,7 +16,7 @@ use crate::{
     errors::network_error::NetworkErrorType,
 };
 
-pub async fn send_thread_to_ai(client: &OpenAIClient, ctx: &Context, messages: Vec<Message>) -> String {
+pub async fn send_thread_to_ai(client: &OpenAIClient, ctx: &Context, messages: Vec<Message>) -> Result<String, Box<dyn Error>> {
     let chat_messages: Vec<ChatMessage> = messages.clone().iter_mut().map(|m| {
         let is_bot = m.is_own(ctx);
         let role = if is_bot { Role::Assistant } else { Role::User };
@@ -31,11 +33,11 @@ pub async fn send_thread_to_ai(client: &OpenAIClient, ctx: &Context, messages: V
         },
     };
 
-    message_content
+    Ok(message_content)
 }
 
 
-pub async fn get_emoji_from_ai(client: &OpenAIClient, message: &Message, emoji_list: String) -> String {
+pub async fn get_emoji_from_ai(client: &OpenAIClient, message: &Message, emoji_list: String) -> Result<String, Box<dyn Error>> {
     let mut messages = vec![message];
     let chat_messages: Vec<ChatMessage> = messages.iter_mut().map(|m| {
         let prompt = format!("Pick one discord emote from ({}) that best fits the message '{}'. You must respond with only a single word from the list.", emoji_list, m.content);
@@ -52,5 +54,5 @@ pub async fn get_emoji_from_ai(client: &OpenAIClient, message: &Message, emoji_l
         },
     };
 
-    message_content.replace('.', "")
+    Ok(message_content.replace('.', ""))
 }

@@ -1,11 +1,13 @@
-use std::env;
+use std::{
+    env,
+    error::Error,
+};
 use rand::Rng;
 use itertools::Itertools;
 use log::warn;
 use serenity::{
     client::Context,
     model::channel::Message,
-    prelude::SerenityError,
 };
 
 use crate::{
@@ -13,7 +15,7 @@ use crate::{
     services::ai_chat_service::*
 };
 
-pub async fn random_react_to_message(ctx: &Context, msg: &Message) -> Result<(), SerenityError> {
+pub async fn random_react_to_message(ctx: &Context, msg: &Message) -> Result<(), Box<dyn Error>> {
     let data = ctx.data.write().await;
     let open_ai_client = data.get::<NetworkClient>().unwrap();
 
@@ -26,7 +28,7 @@ pub async fn random_react_to_message(ctx: &Context, msg: &Message) -> Result<(),
                 let emojis = guild_id.emojis(&ctx.http).await?;
 
                 let emojis_string = emojis.clone().iter_mut().map(|e| e.name.clone()).join(", ");
-                let bot_response = get_emoji_from_ai(open_ai_client, msg, emojis_string).await;
+                let bot_response = get_emoji_from_ai(open_ai_client, msg, emojis_string).await?;
 
                 let mut emojis_clone = emojis.clone();
                 let matching_emoji = emojis_clone.iter_mut().find(|e| e.name == bot_response);
