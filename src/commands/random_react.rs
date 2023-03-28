@@ -3,7 +3,6 @@ use std::{
     error::Error,
 };
 use rand::Rng;
-use itertools::Itertools;
 use log::warn;
 use serenity::{
     client::Context,
@@ -12,7 +11,10 @@ use serenity::{
 
 use crate::{
     models::network_client::NetworkClient, 
-    services::ai_chat_service::*
+    services::{
+        ai_chat_service::*,
+        emoji_service::{get_server_emoji_names_string, get_server_emoji_by_name},
+    }
 };
 
 pub async fn random_react_to_message(ctx: &Context, msg: &Message) -> Result<(), Box<dyn Error>> {
@@ -24,22 +26,16 @@ pub async fn random_react_to_message(ctx: &Context, msg: &Message) -> Result<(),
         let rand_num = rand::thread_rng().gen_range(0..rand_react_upper_bound);
 
         if rand_num == 0 {
-            if let Some(guild_id) = msg.guild_id {
-                let emojis = guild_id.emojis(&ctx.http).await?;
-
-                let emojis_string = emojis.clone().iter_mut().map(|e| e.name.clone()).join(", ");
-                let bot_response = get_emoji_from_ai(open_ai_client, msg, emojis_string).await?;
-
-                let mut emojis_clone = emojis.clone();
-                let matching_emoji = emojis_clone.iter_mut().find(|e| e.name == bot_response);
+            let emojis_string = get_server_emoji_names_string(ctx, msg.guild_id).await?;
+            if emojis_string.is_some() {
+                let bot_response = get_emoji_from_ai(open_ai_client, msg, emojis_string.unwrap()).await?;
+                let matching_emoji = get_server_emoji_by_name(ctx, msg.guild_id, bot_response).await?;
                 if let Some(emoji) = matching_emoji {
                     msg.react(ctx, emoji.clone()).await?;
                 } else {
                     warn!("AI picked an invalid emoji, or the server has no emojis available.");
                 }
-            } else {
-                warn!("Guild ID not found.");
-            }
+            };
         }
     }
     

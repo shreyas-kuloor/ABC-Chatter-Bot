@@ -10,14 +10,10 @@ use crate::network::{
         NetworkResult,
         BearerToken,
     },
-    open_ai::open_ai_models::{
-        ChatMessage,
-        ChatRequest,
-        ChatResponse
-    },
 };
 
-pub struct OpenAIClient {
+
+pub struct IGDBClient {
     base_url: String,
     bearer_token: BearerToken,
     client: reqwest::Client,
@@ -28,7 +24,7 @@ fn create_client() -> reqwest::Client {
     client
 }
 
-impl OpenAIClient {
+impl IGDBClient {
     pub fn new(base_url: &String) -> Self {
         Self {
             base_url: base_url.into(),
@@ -37,13 +33,13 @@ impl OpenAIClient {
         }
     }
 
-    pub async fn post_chat(&self, existing_messages: Vec<ChatMessage>) -> NetworkResult<ChatResponse> {
+    pub async fn post_chat(&self, existing_messages: Vec<ChatMessage>) -> Result<ChatResponse> {
         let base_url = &self.base_url;
         let request = ChatRequest::new(existing_messages);
         
         info!("OpenAI request body: {:?}", &request);
         let response = self.client.post(format!("{base_url}/chat/completions"))
-            .bearer_auth(&self.bearer_token)
+            .bearer_auth(&self.bearer_token.token)
             .json(&request)
             .send()
             .await?;
