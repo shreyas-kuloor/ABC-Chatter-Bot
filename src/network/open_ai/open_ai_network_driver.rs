@@ -1,4 +1,5 @@
 use std::env;
+use chrono::DateTime;
 use log::info;
 
 use crate::errors::network_error::{
@@ -29,10 +30,10 @@ fn create_client() -> reqwest::Client {
 }
 
 impl OpenAIClient {
-    pub fn new(base_url: &String) -> Self {
+    pub fn new() -> Self {
         Self {
-            base_url: base_url.into(),
-            bearer_token: BearerToken::new(env::var("OPENAI_API_KEY").unwrap()),
+            base_url: env::var("OPENAI_BASE_URL").unwrap(),
+            bearer_token: BearerToken::new(env::var("OPENAI_API_KEY").unwrap(), DateTime::default()),
             client: create_client(),
         }
     }

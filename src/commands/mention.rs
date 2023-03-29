@@ -8,7 +8,7 @@ use serenity::{
 use crate::{
     models::{
         active_threads::ActiveThreads, 
-        network_client::NetworkClient,
+        network_clients::AINetworkClient,
     },
     services::ai_chat_service::send_thread_to_ai
 };
@@ -32,7 +32,7 @@ pub async fn on_mention(ctx: &Context, msg: &Message) -> Result<(), Box<dyn Erro
         drop(data);
 
         let data = ctx.data.write().await;
-        let client = data.get::<NetworkClient>().unwrap();
+        let client = data.get::<AINetworkClient>().unwrap();
 
         let thread_messages = vec![msg.clone()];
         let typing = msg.channel_id.start_typing(&ctx.http)?;

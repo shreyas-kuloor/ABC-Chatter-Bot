@@ -29,6 +29,7 @@ pub async fn send_thread_to_ai(client: &OpenAIClient, ctx: &Context, messages: V
             match err.error_type {
                 NetworkErrorType::TokenQuotaReached => String::from("Sorry! I've reached my limit for this month. Please ask the administrator to check their OpenAI billing details."),
                 NetworkErrorType::Unknown => String::from("Sorry! An unknown error occurred. Please contact the administrator for details."),
+                _ => String::from("Sorry! An unknown error occurred. Please contact the administrator for details."),
             }
         },
     };
@@ -50,6 +51,7 @@ pub async fn get_emoji_from_ai(client: &OpenAIClient, message: &Message, emoji_l
             match err.error_type {
                 NetworkErrorType::TokenQuotaReached => String::from("Sorry! I've reached my limit for this month. Please ask the administrator to check their OpenAI billing details."),
                 NetworkErrorType::Unknown => String::from("Sorry! An unknown error occurred. Please contact the administrator for details."),
+                _ => String::from("Sorry! An unknown error occurred. Please contact the administrator for details."),
             }
         },
     };

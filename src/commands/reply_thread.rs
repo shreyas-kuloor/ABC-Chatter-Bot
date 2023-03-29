@@ -11,14 +11,14 @@ use serenity::{
 use crate::{
     models::{
         active_threads::ActiveThreads, 
-        network_client::NetworkClient
+        network_clients::AINetworkClient
     }, 
     services::ai_chat_service::send_thread_to_ai
 };
 
 pub async fn on_reply_thread(ctx: &Context, msg: &Message) -> Result<(), Box<dyn Error>> {
     let data = ctx.data.write().await;
-    let open_ai_client = data.get::<NetworkClient>().unwrap();
+    let open_ai_client = data.get::<AINetworkClient>().unwrap();
     let active_threads = data.get::<ActiveThreads>().unwrap();
 
     if active_threads.contains(&msg.channel_id) && !msg.is_own(ctx) {

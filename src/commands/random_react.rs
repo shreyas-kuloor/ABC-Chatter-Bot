@@ -10,7 +10,7 @@ use serenity::{
 };
 
 use crate::{
-    models::network_client::NetworkClient, 
+    models::network_clients::AINetworkClient, 
     services::{
         ai_chat_service::*,
         emoji_service::{get_server_emoji_names_string, get_server_emoji_by_name},
@@ -19,7 +19,7 @@ use crate::{
 
 pub async fn random_react_to_message(ctx: &Context, msg: &Message) -> Result<(), Box<dyn Error>> {
     let data = ctx.data.write().await;
-    let open_ai_client = data.get::<NetworkClient>().unwrap();
+    let open_ai_client = data.get::<AINetworkClient>().unwrap();
 
     if !msg.is_own(ctx) && msg.attachments.is_empty() && msg.embeds.is_empty() {
         let rand_react_upper_bound = env::var("RANDOM_REACT_UPPER_BOUND").unwrap().parse::<u64>().unwrap();

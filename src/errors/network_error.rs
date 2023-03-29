@@ -4,6 +4,7 @@ use std::fmt;
 #[derive(Debug, PartialEq)]
 pub enum NetworkErrorType {
     TokenQuotaReached,
+    Unauthorized,
     Unknown
 }
 
@@ -24,6 +25,7 @@ impl fmt::Display for NetworkError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self.error_type {
             NetworkErrorType::TokenQuotaReached => write!(f, "Token quota was reached."),
+            NetworkErrorType::Unauthorized => write!(f, "Unauthorized or access token has expired."),
             NetworkErrorType::Unknown => write!(f, "A network error occurred."),
         }
         

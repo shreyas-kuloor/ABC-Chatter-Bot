@@ -10,8 +10,11 @@ use serenity::prelude::{
     GatewayIntents
 };
 use models::active_threads::ActiveThreads;
-use models::network_client::NetworkClient;
-use network::open_ai::open_ai_network_driver::OpenAIClient;
+use models::network_clients::{AINetworkClient, GameNetworkClient};
+use network::{
+    open_ai::open_ai_network_driver::OpenAIClient, 
+    games::igdb_network_driver::IGDBClient,
+};
 
 mod commands;
 mod network;
@@ -43,7 +46,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         | GatewayIntents::DIRECT_MESSAGES 
         | GatewayIntents::MESSAGE_CONTENT; 
 
-    let open_ai_client = OpenAIClient::new(&env::var("OPENAI_BASE_URL")?);
+    let open_ai_client = OpenAIClient::new();
+    let igdb_client = IGDBClient::new();
 
     fern::Dispatch::new()
         .format(|out, message, record| {
@@ -67,7 +71,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     {
         let mut data = client.data.write().await;
         data.insert::<ActiveThreads>(Vec::default());
-        data.insert::<NetworkClient>(open_ai_client);
+        data.insert::<AINetworkClient>(open_ai_client);
+        data.insert::<GameNetworkClient>(igdb_client);
     }
 
     client.start().await?;
