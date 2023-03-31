@@ -7,11 +7,24 @@ use crate::{
 
 pub async fn get_game_cover_url_by_name(client: &mut IGDBClient, game_name: String) -> Result<Option<String>, Box<dyn Error>> {
     let cover_image_url = match client.post_game_cover_details(game_name).await {
-        Ok(game_response) => Some(format!(
-            "{}/{}/{}.png", 
-            env::var("GAME_IMAGE_BASE_URL").unwrap(), 
-            env::var("GAME_IMAGE_SIZE").unwrap(), 
-            game_response.cover.image_id)),
+        Ok(game_response) => {
+            if let Some(first_game) = game_response.first() {
+                if let Some(first_game_cover) = &first_game.cover {
+                    Some(format!(
+                        "{}/t_{}/{}.png", 
+                        env::var("GAME_IMAGE_BASE_URL").unwrap(), 
+                        env::var("GAME_IMAGE_SIZE").unwrap(), 
+                        first_game_cover.image_id))
+                }
+                else {
+                    None
+                }
+            }
+            else {
+                None
+            }
+            
+        },
         Err(err) => match err.error_type {
             NetworkErrorType::Unauthorized => {
                 client.refresh_bearer_token().await.unwrap();

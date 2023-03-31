@@ -3,11 +3,9 @@ use serde::{
     Deserialize
 };
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct CoverResponse {
     pub id: i64,
-    pub alpha_channel: bool,
-    pub animated: bool,
     pub game: i64,
     pub height: i64,
     pub image_id: String,
@@ -16,8 +14,8 @@ pub struct CoverResponse {
     pub checksum: String,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct GameResponse {
     pub id: i64,
-    pub cover: CoverResponse,
+    pub cover: Option<CoverResponse>,
 }

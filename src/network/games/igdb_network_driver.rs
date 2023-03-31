@@ -1,5 +1,5 @@
 use std::{env, vec};
-use chrono::{Utc, Duration, DateTime};
+use chrono::{Utc, Duration};
 use log::info;
 
 use crate::errors::network_error::{
@@ -19,6 +19,7 @@ use super::igdb_models::GameResponse;
 pub struct IGDBClient {
     base_url: String,
     bearer_token: BearerToken,
+    client_id: String,
     client: reqwest::Client,
 }
 
@@ -29,15 +30,12 @@ fn create_client() -> reqwest::Client {
 
 impl IGDBClient {
     pub fn new() -> Self {
-        let mut igdb_client = Self {
+        Self {
             base_url: env::var("IGDB_BASE_URL").unwrap(),
-            bearer_token: BearerToken::new(String::default(), DateTime::default()),
+            client_id: env::var("IGDB_CLIENT_ID").unwrap(),
+            bearer_token: BearerToken::new(String::default(), Utc::now()),
             client: create_client(),
-        };
-
-        igdb_client.refresh_bearer_token();
-
-        igdb_client
+        }
     }
 
     pub async fn refresh_bearer_token(&mut self) -> NetworkResult<()> {
@@ -62,17 +60,19 @@ impl IGDBClient {
         Ok(())
     }
 
-    pub async fn post_game_cover_details(&mut self, game_name: String) -> NetworkResult<GameResponse> {
+    pub async fn post_game_cover_details(&mut self, game_name: String) -> NetworkResult<Vec<GameResponse>> {
         let base_url = self.base_url.clone();
-        let request = format!("fields cover.*; search \"{}\"", game_name);
+        let request = format!("fields cover.*; search \"{}\";", game_name);
 
         if self.bearer_token.expiration < Utc::now() {
-            self.refresh_bearer_token();
+            self.refresh_bearer_token().await?;
         }
         
         info!("IGDB game cover request body: {}", &request);
+        info!("IGDB game cover bearer token: {}", &self.bearer_token.token);
         let response = self.client.post(format!("{base_url}/games"))
             .bearer_auth(&self.bearer_token.token)
+            .header("Client-ID", &self.client_id)
             .body(request)
             .send()
             .await?;
@@ -80,9 +80,11 @@ impl IGDBClient {
         info!("IGDB game cover response received: {:?}", &response);
         match response.status() {
             reqwest::StatusCode::OK => {
-                let parsed_response = response.json::<GameResponse>().await?;
+                let response_text = &response.text().await?;
+                info!("IGDB game cover response received: {:?}", &response_text);
+                let parsed_response = serde_json::from_str::<Vec<GameResponse>>(&response_text).unwrap();
                 info!("IGDB game cover response body: {:?}", &parsed_response);
-                Ok(parsed_response)
+                Ok(parsed_response.clone())
             },
             reqwest::StatusCode::UNAUTHORIZED => {
                 Err(NetworkError::new(NetworkErrorType::Unauthorized))
