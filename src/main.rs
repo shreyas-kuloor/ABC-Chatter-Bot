@@ -1,6 +1,15 @@
+mod commands;
+mod network;
+mod models;
+mod services;
+mod errors;
+mod utils;
+
 use std::env;
 use log::info;
 use serenity::async_trait;
+use serenity::framework::StandardFramework;
+use serenity::framework::standard::macros::group;
 use serenity::model::prelude::Ready;
 use serenity::model::channel::Message;
 use serenity::prelude::{
@@ -10,14 +19,12 @@ use serenity::prelude::{
     GatewayIntents
 };
 use models::active_threads::ActiveThreads;
-use models::network_client::NetworkClient;
-use network::open_ai::open_ai_network_driver::OpenAIClient;
-
-mod commands;
-mod network;
-mod models;
-mod services;
-mod errors;
+use models::network_clients::{AINetworkClient, GameNetworkClient};
+use network::{
+    open_ai::open_ai_network_driver::OpenAIClient, 
+    games::igdb_network_driver::IGDBClient,
+};
+use commands::*;
 
 struct Handler;
 
@@ -35,15 +42,23 @@ impl EventHandler for Handler {
     }
 }
 
+
+#[group]
+#[commands(chug)]
+#[description = "Basic"]
+struct General;
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let token = env::var("DISCORD_BOT_TOKEN")?;
 
     let intents = GatewayIntents::GUILD_MESSAGES
         | GatewayIntents::DIRECT_MESSAGES 
-        | GatewayIntents::MESSAGE_CONTENT; 
+        | GatewayIntents::MESSAGE_CONTENT
+        | GatewayIntents::GUILD_MESSAGE_REACTIONS; 
 
-    let open_ai_client = OpenAIClient::new(&env::var("OPENAI_BASE_URL")?);
+    let open_ai_client = OpenAIClient::new();
+    let igdb_client = IGDBClient::new();
 
     fern::Dispatch::new()
         .format(|out, message, record| {
@@ -61,13 +76,23 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .chain(fern::log_file("output.log")?)
         .apply()?;
 
+    let framework = StandardFramework::new()
+        .configure(|c| c
+            .with_whitespace(true)
+            .prefix(env::var("BOT_COMMAND_PREFIX").unwrap())
+            .delimiters(vec![", ", ","])
+            .case_insensitivity(true))
+        .group(&GENERAL_GROUP);
+
     let mut client = Client::builder(token, intents)
         .event_handler(Handler)
+        .framework(framework)
         .await?;
     {
         let mut data = client.data.write().await;
         data.insert::<ActiveThreads>(Vec::default());
-        data.insert::<NetworkClient>(open_ai_client);
+        data.insert::<AINetworkClient>(open_ai_client);
+        data.insert::<GameNetworkClient>(igdb_client);
     }
 
     client.start().await?;

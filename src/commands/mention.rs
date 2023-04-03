@@ -1,3 +1,5 @@
+use std::error::Error;
+
 use serenity::{
     prelude::*,
     model::channel::Message,
@@ -6,12 +8,12 @@ use serenity::{
 use crate::{
     models::{
         active_threads::ActiveThreads, 
-        network_client::NetworkClient,
+        network_clients::AINetworkClient,
     },
     services::ai_chat_service::send_thread_to_ai
 };
 
-pub async fn on_mention(ctx: &Context, msg: &Message) -> Result<(), SerenityError> {
+pub async fn on_mention(ctx: &Context, msg: &Message) -> Result<(), Box<dyn Error>> {
     let mut data = ctx.data.write().await;
     let active_threads = data.get_mut::<ActiveThreads>().unwrap();
     
@@ -30,12 +32,12 @@ pub async fn on_mention(ctx: &Context, msg: &Message) -> Result<(), SerenityErro
         drop(data);
 
         let data = ctx.data.write().await;
-        let client = data.get::<NetworkClient>().unwrap();
+        let client = data.get::<AINetworkClient>().unwrap();
 
         let thread_messages = vec![msg.clone()];
         let typing = msg.channel_id.start_typing(&ctx.http)?;
         
-        let bot_response = send_thread_to_ai(client, ctx, thread_messages).await;
+        let bot_response = send_thread_to_ai(client, ctx, thread_messages).await?;
 
         let _ = typing.stop();
         
