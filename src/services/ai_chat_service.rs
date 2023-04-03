@@ -1,5 +1,6 @@
 use std::error::Error;
 
+use reqwest::Method;
 use serenity::{
     model::prelude::Message, 
     prelude::Context
@@ -10,7 +11,7 @@ use crate::{
         open_ai_network_driver::OpenAIClient,
         open_ai_models::{
             ChatMessage, 
-            Role
+            Role, ChatRequest, ChatResponse
         }
     },
     errors::network_error::NetworkErrorType,
@@ -23,7 +24,9 @@ pub async fn send_thread_to_ai(client: &OpenAIClient, ctx: &Context, messages: V
         ChatMessage::new(role, m.content.clone().to_string())
     }).collect();
 
-    let message_content = match client.post_chat(chat_messages).await {
+    let ai_request = ChatRequest::new(chat_messages);
+
+    let message_content = match client.send_request::<ChatRequest, ChatResponse>("chat/completions".to_string(), Method::POST, Some(ai_request)).await {
         Ok(resp) => resp.choices[0].message.content.clone(),
         Err(err) => {
             match err.error_type {
@@ -45,7 +48,9 @@ pub async fn get_emoji_from_ai(client: &OpenAIClient, message: &Message, emoji_l
         ChatMessage::new(Role::User, prompt)
     }).collect();
 
-    let message_content = match client.post_chat(chat_messages).await {
+    let ai_request = ChatRequest::new(chat_messages);
+
+    let message_content = match client.send_request::<ChatRequest, ChatResponse>("chat/completions".to_string(), Method::POST, Some(ai_request)).await {
         Ok(resp) => resp.choices[0].message.content.clone(),
         Err(err) => {
             match err.error_type {

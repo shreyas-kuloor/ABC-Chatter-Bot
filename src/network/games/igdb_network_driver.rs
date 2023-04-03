@@ -1,6 +1,8 @@
 use std::{env, vec};
 use chrono::{Utc, Duration};
 use log::info;
+use reqwest::{Body, Method};
+use serde::{Deserialize, Serialize};
 
 use crate::errors::network_error::{
     NetworkError,
@@ -13,8 +15,6 @@ use crate::network::{
         BearerToken,
     },
 };
-
-use super::igdb_models::GameResponse;
 
 pub struct IGDBClient {
     base_url: String,
@@ -60,31 +60,27 @@ impl IGDBClient {
         Ok(())
     }
 
-    pub async fn post_game_cover_details(&mut self, game_name: String) -> NetworkResult<Vec<GameResponse>> {
-        let base_url = self.base_url.clone();
-        let request = format!("fields cover.*; search \"{}\";", game_name);
+    pub async fn send_request<T: for<'a> Deserialize<'a> + Serialize + std::fmt::Debug + Into<Body>, U: for<'a> Deserialize<'a> + Serialize + std::fmt::Debug>(&mut self, path: String, method: Method, request: Option<T>) -> NetworkResult<U> {
+        let url = format!("{}/{}", &self.base_url, path);
 
         if self.bearer_token.expiration < Utc::now() {
             self.refresh_bearer_token().await?;
         }
+
+        let call = match request {
+            Some(populated_request) => self.client.request(method.clone(), &url).bearer_auth(&self.bearer_token.token).header("Client-ID", &self.client_id).body(populated_request),
+            None => self.client.request(method.clone(), &url).bearer_auth(&self.bearer_token.token).header("Client-ID", &self.client_id),
+        };
         
-        info!("IGDB game cover request body: {}", &request);
-        info!("IGDB game cover bearer token: {}", &self.bearer_token.token);
-        let response = self.client.post(format!("{base_url}/games"))
-            .bearer_auth(&self.bearer_token.token)
-            .header("Client-ID", &self.client_id)
-            .body(request)
+        let response = call
             .send()
             .await?;
 
-        info!("IGDB game cover response received: {:?}", &response);
         match response.status() {
             reqwest::StatusCode::OK => {
-                let response_text = &response.text().await?;
-                info!("IGDB game cover response received: {:?}", &response_text);
-                let parsed_response = serde_json::from_str::<Vec<GameResponse>>(&response_text).unwrap();
+                let parsed_response = response.json::<U>().await?;
                 info!("IGDB game cover response body: {:?}", &parsed_response);
-                Ok(parsed_response.clone())
+                Ok(parsed_response)
             },
             reqwest::StatusCode::UNAUTHORIZED => {
                 Err(NetworkError::new(NetworkErrorType::Unauthorized))

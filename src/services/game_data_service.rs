@@ -1,12 +1,14 @@
 use std::{error::Error, env};
 use log::{info, warn};
+use reqwest::Method;
 use crate::{
-    network::games::igdb_network_driver::IGDBClient,
+    network::games::{igdb_network_driver::IGDBClient, igdb_models::GameResponse},
     errors::network_error::NetworkErrorType,
 };
 
 pub async fn get_game_cover_url_by_name(client: &mut IGDBClient, game_name: String) -> Result<Option<String>, Box<dyn Error>> {
-    let cover_image_url = match client.post_game_cover_details(game_name).await {
+    let game_request = format!("fields cover.*; search \"{}\";", game_name);
+    let cover_image_url = match client.send_request::<String, Vec<GameResponse>>("games".to_string(), Method::POST, Some(game_request)).await {
         Ok(game_response) => {
             if let Some(first_game) = game_response.first() {
                 if let Some(first_game_cover) = &first_game.cover {

@@ -22,13 +22,6 @@ pub async fn on_reply_thread(ctx: &Context, msg: &Message) -> Result<(), Box<dyn
     let active_threads = data.get::<ActiveThreads>().unwrap();
 
     if active_threads.contains(&msg.channel_id) && !msg.is_own(ctx) {
-        // let emojis = match msg.guild_id {
-        //     Some(guild_id) => ctx.http().get_emojis(guild_id.0).await?,
-        //     None => Vec::default(),
-        // };
-
-        // msg.react(ctx, emojis[0].clone()).await?;
-        
         let message_limit = env::var("THREAD_MESSAGE_LIMIT").unwrap().parse::<u64>().unwrap();
         let mut thread_messages = msg
             .channel_id

@@ -1,5 +1,5 @@
 use std::{env, time::Duration};
-use log::{info, warn};
+use log::warn;
 use itertools::Itertools;
 use serenity::{
     client::Context,
@@ -24,9 +24,18 @@ async fn chug(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     };
     let chug_emote_name = env::var("CHUG_EMOTE_NAME").unwrap();
     let chug_emote = get_server_emoji_by_name(ctx, msg.guild_id, chug_emote_name).await.unwrap().unwrap();
-    let chug_timeout = env::var("CHUG_TIMEOUT_SECONDS").unwrap().parse::<u64>().unwrap();
+    let chug_default_timeout = env::var("CHUG_TIMEOUT_SECONDS").unwrap().parse::<u64>().unwrap();
 
-    if args.len() == 1 {
+    let mut duration = chug_default_timeout;
+    match args.parse::<u64>() {
+        Ok(minutes) => {
+            duration = minutes*60;
+            args.advance();
+        },
+        Err(_) => (),
+    };
+
+    if args.remaining() == 1 {
         let game = args.single::<String>().unwrap();
 
         let game_cover_url = match get_game_cover_url_by_name(client, game.clone()).await.unwrap() {
@@ -34,20 +43,19 @@ async fn chug(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
             None => env::var("DEFAULT_GAME_IMAGE").unwrap(),
         };
 
-        msg.delete(ctx).await?;
-
         let mut default_embed = CreateEmbed::default();
         let embed_template = default_embed
             .author(|author| author.name(&bot_user.name).icon_url(&bot_avatar_url))
             .title(format!("Chug Check started for \"{}\"", &game))
             .description(format!(
-                "{} has started a chug check for \"{}\". React with a {} if you're ready!
+                "{} has started a chug check for \"{}\". This chug check will last {} minutes. React with a {} if you're ready!
 
                 The creator of the chug check may react with 📢 to ping all current chugsters.
 
                 The creator of the chug check may react with ❌ to cancel.", 
                 &msg.author, 
-                &game, 
+                &game,
+                duration/60, 
                 chug_emote))
             .color(Color::DARK_PURPLE)
             .thumbnail(&game_cover_url)
@@ -59,6 +67,8 @@ async fn chug(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
                 message
                     .set_embed(embed_template.clone().field("Chugsters", "", false).clone()))
             .await?;
+
+        msg.delete(ctx).await?;
 
         let _ = &chug_message.react(ctx, chug_emote.clone()).await?;
         let _ = &chug_message.react(ctx, ReactionType::Unicode("📢".to_string())).await?;
@@ -76,8 +86,10 @@ async fn chug(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
                 .add_event_type(EventType::ReactionAdd)
                 .add_event_type(EventType::ReactionRemove)
                 .add_message_id(chug_message.id)
-                .timeout(Duration::from_secs(chug_timeout))
+                .timeout(Duration::from_secs(duration))
                 .build().unwrap();
+
+            let mut cancelled = false;
 
             while let Some(event) = collector
                 .next()
@@ -95,6 +107,7 @@ async fn chug(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
                                             .set_embed(thread_embed.clone().field(format!("❌ Chug cancelled by {}", &original_message.author.name), "", false).clone()))
                                     .await.unwrap();
 
+                                cancelled = true;
                                 break;
                             } 
                             else if addition.reaction.emoji == ReactionType::Unicode("📢".to_string()) && addition_author_id == message_author_id {
@@ -131,17 +144,25 @@ async fn chug(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
                         _ => warn!("Some other event occurred even though it was not configured"),
                     }
                 }
-        });
 
-        info!("Exited loop");
+            if !cancelled {
+                let reacted_users = chug_message
+                    .reaction_users(thread_ctx, chug_emote.clone(), None, None::<UserId>)
+                    .await
+                    .unwrap();
+                let users_string = reacted_users.clone().iter().filter(|user| !user.bot).unique().join(", ");
+                if !users_string.is_empty() {
+                    let _ = &chug_message.reply(thread_ctx, format!("CHUG ALERT 📢: {} \nFALSE CHUGGERS WILL BE PROSECUTED", users_string)).await.unwrap();
+                }
+            }
+        });
     }
-    else if args.len() > 1 && args.len() < 10 {
+    else if args.remaining() > 1 && args.remaining() < 10 {
         let mut games: Vec<String> = Vec::new();
+        let original_args = args.clone();
         for arg in args.iter::<String>() {
             games.push(arg.unwrap_or_default());
         }
-
-        msg.delete(ctx).await?;
 
         let options = games
             .iter_mut()
@@ -154,12 +175,13 @@ async fn chug(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
             .author(|author| author.name(&bot_user.name).icon_url(&bot_avatar_url))
             .title(format!("Chug Check started for multiple games! {}", chug_emote))
             .description(format!(
-                "{} has started a chug check for multiple games. React with the emoji next to the game(s) you want to play!
+                "{} has started a chug check for multiple games. This chug check will last {} minutes. React with the emoji next to the game(s) you want to play!
 
                 The creator of the chug check may react with 📢 to ping all current chugsters.
 
                 If you started the chug check, you may react with ❌ to cancel.", 
-                &msg.author))
+                &msg.author,
+                duration/60))
             .color(Color::DARK_PURPLE)
             .thumbnail(env::var("CHUG_POLL_IMAGE").unwrap());
 
@@ -170,7 +192,9 @@ async fn chug(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
                     .set_embed(embed_template.clone().field("Games and Chugsters", &options, false).clone()))
             .await?;
 
-        for i in 1..=args.len() {
+        msg.delete(ctx).await?;
+
+        for i in 1..=original_args.remaining() {
             let _ = &chug_message.react(ctx, ReactionType::Unicode(get_unicode_from_number(i).unwrap())).await?;
         }
         let _ = &chug_message.react(ctx, ReactionType::Unicode("📢".to_string())).await?;
@@ -188,7 +212,7 @@ async fn chug(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
                 .add_event_type(EventType::ReactionAdd)
                 .add_event_type(EventType::ReactionRemove)
                 .add_message_id(chug_message.id)
-                .timeout(Duration::from_secs(chug_timeout))
+                .timeout(Duration::from_secs(duration))
                 .build().unwrap();
 
             let mut cancelled = false;
@@ -199,7 +223,7 @@ async fn chug(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
                     match event.as_ref() {
                         Event::ReactionAdd(addition) => {
                             let mut updated_fields: Vec<String> = Vec::new();
-                            for i in 1..=args.len() {
+                            for i in 1..=original_args.remaining() {
                                 let reacted_users = addition
                                     .reaction
                                     .users(thread_ctx, ReactionType::Unicode(get_unicode_from_number(i).unwrap()), None, None::<User>)
@@ -234,7 +258,7 @@ async fn chug(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
                             }
                             else if addition.reaction.emoji == ReactionType::Unicode("📢".to_string()) && addition_author_id == message_author_id {
                                 let mut total_reacted_users: Vec<User> = Vec::new();
-                                for i in 1..=args.len() {
+                                for i in 1..=original_args.remaining() {
                                     let mut reacted_users = addition
                                         .reaction
                                         .users(thread_ctx, ReactionType::Unicode(get_unicode_from_number(i).unwrap()), None, None::<User>)
@@ -258,7 +282,7 @@ async fn chug(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
                         },
                         Event::ReactionRemove(removal) => {
                             let mut updated_fields: Vec<String> = Vec::new();
-                            for i in 1..=args.len() {
+                            for i in 1..=original_args.remaining() {
                                 let reacted_users = removal
                                     .reaction
                                     .users(thread_ctx, ReactionType::Unicode(get_unicode_from_number(i).unwrap()), None, None::<User>)
@@ -285,7 +309,7 @@ async fn chug(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
             
             if !cancelled {
                 let mut total_reacted_users: Vec<User> = Vec::new();
-                for i in 1..=args.len() {
+                for i in 1..=original_args.remaining() {
                     let mut reacted_users = chug_message
                         .reaction_users(thread_ctx, ReactionType::Unicode(get_unicode_from_number(i).unwrap()), None, None::<UserId>)
                         .await

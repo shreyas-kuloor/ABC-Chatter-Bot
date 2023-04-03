@@ -1,6 +1,8 @@
 use std::env;
 use chrono::DateTime;
 use log::info;
+use reqwest::Method;
+use serde::{Deserialize, Serialize};
 
 use crate::errors::network_error::{
     NetworkError,
@@ -10,11 +12,6 @@ use crate::network::{
     models::network_models::{
         NetworkResult,
         BearerToken,
-    },
-    open_ai::open_ai_models::{
-        ChatMessage,
-        ChatRequest,
-        ChatResponse
     },
 };
 
@@ -38,21 +35,23 @@ impl OpenAIClient {
         }
     }
 
-    pub async fn post_chat(&self, existing_messages: Vec<ChatMessage>) -> NetworkResult<ChatResponse> {
-        let base_url = &self.base_url;
-        let request = ChatRequest::new(existing_messages);
+    pub async fn send_request<T: for<'a> Deserialize<'a> + Serialize + std::fmt::Debug, U: for<'a> Deserialize<'a> + Serialize + std::fmt::Debug>(&self, path: String, method: Method, request: Option<T>) -> NetworkResult<U> {
+        let url = format!("{}/{}", &self.base_url, path);
         
         info!("OpenAI request body: {:?}", &request);
-        let response = self.client.post(format!("{base_url}/chat/completions"))
-            .bearer_auth(&self.bearer_token)
-            .json(&request)
+
+        let call = match request {
+            Some(populated_request) => self.client.request(method.clone(), &url).bearer_auth(&self.bearer_token).json(&populated_request),
+            None => self.client.request(method.clone(), &url).bearer_auth(&self.bearer_token),
+        };
+
+        let response = call
             .send()
             .await?;
 
-        info!("OpenAI response received: {:?}", &response);
         match response.status() {
             reqwest::StatusCode::OK => {
-                let parsed_response = response.json::<ChatResponse>().await?;
+                let parsed_response = response.json::<U>().await?;
                 info!("OpenAI response body: {:?}", &parsed_response);
                 Ok(parsed_response)
             },
