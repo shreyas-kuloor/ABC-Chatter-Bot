@@ -7,6 +7,7 @@ mod utils;
 
 use std::env;
 use log::info;
+use network::stable_diffusion::stable_diffusion_network_driver::StableDiffusionClient;
 use serenity::async_trait;
 use serenity::framework::StandardFramework;
 use serenity::framework::standard::macros::group;
@@ -19,7 +20,7 @@ use serenity::prelude::{
     GatewayIntents
 };
 use models::active_threads::ActiveThreads;
-use models::network_clients::{AINetworkClient, GameNetworkClient};
+use models::network_clients::{AINetworkClient, GameNetworkClient, ImageGenNetworkClient};
 use network::{
     open_ai::open_ai_network_driver::OpenAIClient, 
     games::igdb_network_driver::IGDBClient,
@@ -59,6 +60,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let open_ai_client = OpenAIClient::new();
     let igdb_client = IGDBClient::new();
+    let stable_diffusion_client = StableDiffusionClient::new();
 
     fern::Dispatch::new()
         .format(|out, message, record| {
@@ -93,6 +95,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         data.insert::<ActiveThreads>(Vec::default());
         data.insert::<AINetworkClient>(open_ai_client);
         data.insert::<GameNetworkClient>(igdb_client);
+        data.insert::<ImageGenNetworkClient>(stable_diffusion_client);
     }
 
     client.start().await?;
