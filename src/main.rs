@@ -45,7 +45,7 @@ impl EventHandler for Handler {
 
 
 #[group]
-#[commands(chug)]
+#[commands(chug, image)]
 #[description = "Basic"]
 struct General;
 
