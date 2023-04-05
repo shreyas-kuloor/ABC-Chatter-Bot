@@ -4,6 +4,8 @@ pub mod clear_threads;
 pub mod random_react;
 pub mod chug;
 pub mod image;
+pub mod help;
 
 pub use chug::*;
 pub use image::*;
+pub use help::*;
