@@ -17,7 +17,9 @@ async fn image(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
 
     let image_gen_prompt = args.message();
 
+    let typing = msg.channel_id.start_typing(&ctx.http)?;
     let image_response_b64 = generate_image_base64_from_prompt(client, image_gen_prompt.to_string()).await.unwrap();
+    let _ = typing.stop();
 
     if let Some(image_b64) = image_response_b64 {
         if let Ok(image_bytes) = general_purpose::STANDARD.decode(&image_b64) {
@@ -31,6 +33,7 @@ async fn image(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
     }
     else {
         warn!("None image base64 was returned.");
+        let _ = msg.channel_id.send_message(ctx, |create_msg| create_msg.reference_message(msg).content("Sorry, I tried to generate an image for you, but the server timed me out. Please try again.!")).await?;
     }
     Ok(())
 }

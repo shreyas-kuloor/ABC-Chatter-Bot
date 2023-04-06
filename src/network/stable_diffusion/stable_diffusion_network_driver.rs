@@ -1,4 +1,4 @@
-use std::env;
+use std::{env, time::Duration};
 use log::info;
 use reqwest::Method;
 use serde::{Deserialize, Serialize};
@@ -38,13 +38,13 @@ impl StableDiffusionClient {
         };
 
         let response = call
+            .timeout(Duration::from_secs(600))
             .send()
             .await?;
 
         match response.status() {
             reqwest::StatusCode::OK => {
                 let parsed_response = response.json::<U>().await?;
-                info!("Stable Diffusion response body: {:?}", &parsed_response);
                 Ok(parsed_response)
             },
             _ => {

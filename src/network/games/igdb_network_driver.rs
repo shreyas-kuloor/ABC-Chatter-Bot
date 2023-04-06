@@ -83,7 +83,7 @@ impl IGDBClient {
                 Ok(parsed_response)
             },
             reqwest::StatusCode::UNAUTHORIZED => {
-                Err(NetworkError::new(NetworkErrorType::Unauthorized))
+                Err(NetworkError::new(NetworkErrorType::Unauthorized, None))
             },
             _ => {
                 panic!("Unexpected response: {:?}", response.json().await?);

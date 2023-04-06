@@ -6,12 +6,14 @@ use serde::{
 #[derive(Serialize, Deserialize, Debug)]
 pub struct StableDiffusionTextRequest {
     pub prompt: String,
+    pub steps: u64,
 }
 
 impl StableDiffusionTextRequest {
-    pub fn new(prompt: String) -> Self {
+    pub fn new(prompt: String, steps: u64) -> Self {
         Self {
             prompt,
+            steps,
         }
     }
 }

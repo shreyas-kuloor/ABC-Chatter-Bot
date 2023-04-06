@@ -56,7 +56,7 @@ impl OpenAIClient {
                 Ok(parsed_response)
             },
             reqwest::StatusCode::TOO_MANY_REQUESTS => {
-                Err(NetworkError::new(NetworkErrorType::TokenQuotaReached))
+                Err(NetworkError::new(NetworkErrorType::TokenQuotaReached, None))
             },
             _ => {
                 panic!("Unexpected response: {:?}", response.json().await?);
