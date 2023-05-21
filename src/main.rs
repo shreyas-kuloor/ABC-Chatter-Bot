@@ -1,3 +1,4 @@
+mod effects;
 mod commands;
 mod network;
 mod models;
@@ -6,7 +7,12 @@ mod errors;
 mod utils;
 
 use std::env;
-use log::{info, warn};
+use effects::clear_threads::clear_inactive_threads;
+use effects::leave_empty_channel::leave_empty_voice_channel;
+use effects::mention::on_mention;
+use effects::random_react::random_react_to_message;
+use effects::reply_thread::on_reply_thread;
+use log::info;
 use network::eleven_labs::eleven_labs_network_driver::ElevenLabsClient;
 use network::stable_diffusion::stable_diffusion_network_driver::StableDiffusionClient;
 use serenity::async_trait;
@@ -14,31 +20,27 @@ use serenity::framework::StandardFramework;
 use serenity::framework::standard::macros::group;
 use serenity::model::prelude::Ready;
 use serenity::model::channel::Message;
-use serenity::prelude::{
-    EventHandler,
-    Context,
-    Client,
-    GatewayIntents
-};
+use serenity::model::voice::VoiceState;
+use serenity::prelude::{EventHandler, Context, Client, GatewayIntents};
 use models::active_threads::ActiveThreads;
 use models::network_clients::{AINetworkClient, GameNetworkClient, ImageGenNetworkClient, VoiceGenNetworkClient};
-use network::{
-    open_ai::open_ai_network_driver::OpenAIClient, 
-    games::igdb_network_driver::IGDBClient,
-};
+use network::{open_ai::open_ai_network_driver::OpenAIClient, games::igdb_network_driver::IGDBClient};
 use commands::*;
-use songbird::{SerenityInit, EventHandler as VoiceEventHandler, EventContext, Event};
-use utils::voice_utils::TrackEndNotifier;
+use songbird::SerenityInit;
 
 struct Handler;
 
 #[async_trait]
 impl EventHandler for Handler {
     async fn message(&self, ctx: Context, msg: Message) {
-        commands::mention::on_mention(&ctx, &msg).await.unwrap();
-        commands::reply_thread::on_reply_thread(&ctx, &msg).await.unwrap();
-        commands::clear_threads::clear_inactive_threads(&ctx, &msg).await.unwrap();
-        commands::random_react::random_react_to_message(&ctx, &msg).await.unwrap();
+        on_mention(&ctx, &msg).await.unwrap();
+        on_reply_thread(&ctx, &msg).await.unwrap();
+        clear_inactive_threads(&ctx, &msg).await.unwrap();
+        random_react_to_message(&ctx, &msg).await.unwrap();
+    }
+
+    async fn voice_state_update(&self, ctx: Context, old: Option<VoiceState>, _new: VoiceState) {    
+        leave_empty_voice_channel(&ctx, old).await.unwrap();
     }
     
     async fn ready(&self, _: Context, ready: Ready) {
@@ -46,34 +48,8 @@ impl EventHandler for Handler {
     }
 }
 
-#[async_trait]
-impl VoiceEventHandler for TrackEndNotifier {
-    async fn act(&self, ctx: &EventContext<'_>) -> Option<Event> {
-        if let EventContext::Track(_track_list) = ctx {
-            info!("Track ended");
-
-            let manager = songbird::get(&self.ctx).await?.clone();
-            let has_handler = manager.get(self.guild_id).is_some();
-
-            if has_handler {
-                if let Err(err) = manager.remove(self.guild_id).await {
-                    warn!("Error occurred while trying to leave voice channel: {:?}", err);
-                    
-                }
-                
-                info!("Left voice channel");
-            }
-            else {
-                warn!("Track ended while not in a voice channel.");
-            }
-        }
-
-        None
-    }
-}
-
 #[group]
-#[commands(chug, image, help, voice, voices)]
+#[commands(chug, image, voice, voices, join, leave, help)]
 #[description = "Basic"]
 struct General;
 

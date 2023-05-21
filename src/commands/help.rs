@@ -2,7 +2,7 @@ use std::env;
 use serenity::{prelude::Context, model::prelude::Message, framework::standard::{Args, CommandResult, macros::command}, utils::Color};
 
 #[command]
-#[sub_commands(mention, chug, image)]
+#[sub_commands(mention, chug, image, voice_help, voices_help, join_help, leave_help)]
 pub async fn help(
     ctx: &Context, 
     msg: &Message, 
@@ -24,7 +24,7 @@ pub async fn help(
                     .title("Help")
                     .description("To get help with an individual command, pass its name as an argument to this command (/help `{command}`).")
                     .color(Color::TEAL)
-                    .field("Commands", "`mention`, `chug`, `image`", false)))
+                    .field("Commands", "`mention`, `chug`, `image`, `voice`, `voices`, `join`, `leave`", false)))
         .await?;
     Ok(())
 }
@@ -133,6 +133,157 @@ async fn image(
                     .field(
                         "Arguments", 
                         "`prompt`: The prompt to send to the AI image generator.", 
+                        false)))
+        .await?;
+    Ok(())
+}
+
+//The following commands need to be suffixed with _help and then have the command name specified in the attribute 
+// in order to not conflict with the main command.
+
+#[command("voice")] 
+async fn voice_help( 
+    ctx: &Context, 
+    msg: &Message, 
+    _args: Args, 
+) -> CommandResult {
+    let bot_user = ctx.cache.current_user();
+    let bot_avatar_url = match bot_user.avatar_url() {
+        Some(avatar_url) => avatar_url,
+        None => String::new(),
+    };
+
+    let _ = msg.channel_id.send_message(
+        ctx, 
+        |message| 
+            message
+                .reference_message(msg)
+                .embed(|embed| embed
+                    .author(|author| author.name(&bot_user.name).icon_url(&bot_avatar_url))
+                    .title("Command: Voice")
+                    .description(
+                        "The voice command is used to generate speech from the provided prompt using an AI text to speech generator.
+                        If the user who runs the command is in a voice channel, the bot will join the voice channel and play the generated speech.
+                        If the user who runs the command is not in a voice channel, the bot will reply to the message with the generated speech as an attachment.
+                        You will need to specify a voice for the speech generation.
+                        A list of voices can be retrieved by running the `voices` command.")
+                    .color(Color::TEAL)
+                    .field(
+                        "Usage", 
+                        "/voice `{voice name}`, `{prompt}`", 
+                        false)
+                    .field(
+                        "Arguments", 
+                        "`voice name`: The name of the voice to use for the speech generation.
+                        `prompt`: The prompt to send to the AI text to speech generator.", 
+                        false)))
+        .await?;
+    Ok(())
+}
+
+#[command("voices")]
+async fn voices_help(
+    ctx: &Context, 
+    msg: &Message, 
+    _args: Args, 
+) -> CommandResult {
+    let bot_user = ctx.cache.current_user();
+    let bot_avatar_url = match bot_user.avatar_url() {
+        Some(avatar_url) => avatar_url,
+        None => String::new(),
+    };
+
+    let _ = msg.channel_id.send_message(
+        ctx, 
+        |message| 
+            message
+                .reference_message(msg)
+                .embed(|embed| embed
+                    .author(|author| author.name(&bot_user.name).icon_url(&bot_avatar_url))
+                    .title("Command: Voices")
+                    .description(
+                        "The voices command is used to list all the voice names that can be used with the `voice` command.")
+                    .color(Color::TEAL)
+                    .field(
+                        "Usage", 
+                        "/voices", 
+                        false)
+                    .field(
+                        "Arguments", 
+                        "None", 
+                        false)))
+        .await?;
+    Ok(())
+}
+
+#[command("join")]
+async fn join_help(
+    ctx: &Context, 
+    msg: &Message, 
+    _args: Args, 
+) -> CommandResult {
+    let bot_user = ctx.cache.current_user();
+    let bot_avatar_url = match bot_user.avatar_url() {
+        Some(avatar_url) => avatar_url,
+        None => String::new(),
+    };
+
+    let _ = msg.channel_id.send_message(
+        ctx, 
+        |message| 
+            message
+                .reference_message(msg)
+                .embed(|embed| embed
+                    .author(|author| author.name(&bot_user.name).icon_url(&bot_avatar_url))
+                    .title("Command: Join")
+                    .description(
+                        "The join command is used to summon the bot to the user's current voice channel.
+                        The bot will return an error if the user is not in a voice channel.")
+                    .color(Color::TEAL)
+                    .field(
+                        "Usage", 
+                        "/join", 
+                        false)
+                    .field(
+                        "Arguments", 
+                        "None", 
+                        false)))
+        .await?;
+    Ok(())
+}
+
+#[command("leave")]
+async fn leave_help(
+    ctx: &Context, 
+    msg: &Message, 
+    _args: Args, 
+) -> CommandResult {
+    let bot_user = ctx.cache.current_user();
+    let bot_avatar_url = match bot_user.avatar_url() {
+        Some(avatar_url) => avatar_url,
+        None => String::new(),
+    };
+
+    let _ = msg.channel_id.send_message(
+        ctx, 
+        |message| 
+            message
+                .reference_message(msg)
+                .embed(|embed| embed
+                    .author(|author| author.name(&bot_user.name).icon_url(&bot_avatar_url))
+                    .title("Command: Leave")
+                    .description(
+                        "The leave command is used to remove the bot from the user's current voice channel.
+                        The bot will return an error if the bot is not currently in a voice channel.
+                        The bot will automatically leave a voice channel if all users also leave.")
+                    .color(Color::TEAL)
+                    .field(
+                        "Usage", 
+                        "/leave", 
+                        false)
+                    .field(
+                        "Arguments", 
+                        "None", 
                         false)))
         .await?;
     Ok(())

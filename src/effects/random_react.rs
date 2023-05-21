@@ -21,7 +21,7 @@ pub async fn random_react_to_message(ctx: &Context, msg: &Message) -> Result<(),
     let data = ctx.data.write().await;
     let open_ai_client = data.get::<AINetworkClient>().unwrap();
 
-    if !msg.is_own(ctx) && msg.attachments.is_empty() && msg.embeds.is_empty() {
+    if !msg.is_own(ctx) && msg.attachments.is_empty() && msg.embeds.is_empty() && !msg.content.starts_with("/") {
         let rand_react_upper_bound = env::var("RANDOM_REACT_UPPER_BOUND").unwrap().parse::<u64>().unwrap();
         let rand_num = rand::thread_rng().gen_range(0..rand_react_upper_bound);
 
