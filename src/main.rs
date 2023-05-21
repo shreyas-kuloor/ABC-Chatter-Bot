@@ -6,7 +6,8 @@ mod errors;
 mod utils;
 
 use std::env;
-use log::info;
+use log::{info, warn};
+use network::eleven_labs::eleven_labs_network_driver::ElevenLabsClient;
 use network::stable_diffusion::stable_diffusion_network_driver::StableDiffusionClient;
 use serenity::async_trait;
 use serenity::framework::StandardFramework;
@@ -20,12 +21,14 @@ use serenity::prelude::{
     GatewayIntents
 };
 use models::active_threads::ActiveThreads;
-use models::network_clients::{AINetworkClient, GameNetworkClient, ImageGenNetworkClient};
+use models::network_clients::{AINetworkClient, GameNetworkClient, ImageGenNetworkClient, VoiceGenNetworkClient};
 use network::{
     open_ai::open_ai_network_driver::OpenAIClient, 
     games::igdb_network_driver::IGDBClient,
 };
 use commands::*;
+use songbird::{SerenityInit, EventHandler as VoiceEventHandler, EventContext, Event};
+use utils::voice_utils::TrackEndNotifier;
 
 struct Handler;
 
@@ -43,9 +46,34 @@ impl EventHandler for Handler {
     }
 }
 
+#[async_trait]
+impl VoiceEventHandler for TrackEndNotifier {
+    async fn act(&self, ctx: &EventContext<'_>) -> Option<Event> {
+        if let EventContext::Track(_track_list) = ctx {
+            info!("Track ended");
+
+            let manager = songbird::get(&self.ctx).await?.clone();
+            let has_handler = manager.get(self.guild_id).is_some();
+
+            if has_handler {
+                if let Err(err) = manager.remove(self.guild_id).await {
+                    warn!("Error occurred while trying to leave voice channel: {:?}", err);
+                    
+                }
+                
+                info!("Left voice channel");
+            }
+            else {
+                warn!("Track ended while not in a voice channel.");
+            }
+        }
+
+        None
+    }
+}
 
 #[group]
-#[commands(chug, image, help)]
+#[commands(chug, image, help, voice, voices)]
 #[description = "Basic"]
 struct General;
 
@@ -53,14 +81,17 @@ struct General;
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let token = env::var("DISCORD_BOT_TOKEN")?;
 
-    let intents = GatewayIntents::GUILD_MESSAGES
+    let intents = GatewayIntents::GUILDS
+        | GatewayIntents::GUILD_MESSAGES
         | GatewayIntents::DIRECT_MESSAGES 
         | GatewayIntents::MESSAGE_CONTENT
-        | GatewayIntents::GUILD_MESSAGE_REACTIONS; 
+        | GatewayIntents::GUILD_MESSAGE_REACTIONS
+        | GatewayIntents::GUILD_VOICE_STATES; 
 
     let open_ai_client = OpenAIClient::new();
     let igdb_client = IGDBClient::new();
     let stable_diffusion_client = StableDiffusionClient::new();
+    let eleven_labs_client = ElevenLabsClient::new();
 
     fern::Dispatch::new()
         .format(|out, message, record| {
@@ -74,6 +105,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         })
         .level(log::LevelFilter::Warn)
         .level_for("abc_chatter_bot", log::LevelFilter::Debug)
+        .level_for("songbird", log::LevelFilter::Trace)
         .chain(std::io::stdout())
         .chain(fern::log_file("output.log")?)
         .apply()?;
@@ -88,15 +120,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let mut client = Client::builder(token, intents)
         .event_handler(Handler)
+        .type_map_insert::<ActiveThreads>(Vec::default())
+        .type_map_insert::<AINetworkClient>(open_ai_client)
+        .type_map_insert::<GameNetworkClient>(igdb_client)
+        .type_map_insert::<ImageGenNetworkClient>(stable_diffusion_client)
+        .type_map_insert::<VoiceGenNetworkClient>(eleven_labs_client)
         .framework(framework)
+        .register_songbird()
         .await?;
-    {
-        let mut data = client.data.write().await;
-        data.insert::<ActiveThreads>(Vec::default());
-        data.insert::<AINetworkClient>(open_ai_client);
-        data.insert::<GameNetworkClient>(igdb_client);
-        data.insert::<ImageGenNetworkClient>(stable_diffusion_client);
-    }
 
     client.start().await?;
 
