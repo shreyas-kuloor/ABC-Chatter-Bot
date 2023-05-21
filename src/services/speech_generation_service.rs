@@ -4,7 +4,7 @@ use log::warn;
 use reqwest::Method;
 use crate::network::eleven_labs::{eleven_labs_network_driver::ElevenLabsClient, eleven_labs_models::{TextToSpeechRequest, VoiceResponse, Voice}};
 
-pub async fn gen_voice_from_prompt(client: &ElevenLabsClient, prompt: String, voice_id: String) -> Result<Option<Bytes>, Box<dyn Error>> {
+pub async fn generate_speech_from_prompt(client: &ElevenLabsClient, prompt: String, voice_id: String) -> Result<Option<Bytes>, Box<dyn Error>> {
     let tts_request = TextToSpeechRequest::new(
         prompt, 
         env::var("ELEVEN_LABS_STABILITY").unwrap().parse::<f64>().unwrap(), 

@@ -5,7 +5,7 @@ use serenity::{
     framework::standard::{CommandResult, macros::command, Args},
 };
 
-use crate::{models::network_clients::VoiceGenNetworkClient, services::voice_gen_service::get_ai_voices};
+use crate::{models::network_clients::VoiceGenNetworkClient, services::speech_generation_service::get_ai_voices};
 
 #[command]
 async fn voices(ctx: &Context, msg: &Message, _args: Args) -> CommandResult {
@@ -15,12 +15,9 @@ async fn voices(ctx: &Context, msg: &Message, _args: Args) -> CommandResult {
     let voices = get_ai_voices(client).await.unwrap();
     let voice_names = voices.iter().map(|v| v.name.clone()).join(", ");
     
-    let _ = msg.channel_id.send_message(
+    let _ = msg.reply(
         ctx, 
-        |create_msg| 
-            create_msg
-            .reference_message(msg)
-            .content(voice_names))
+        voice_names)
     .await?;
 
     Ok(())

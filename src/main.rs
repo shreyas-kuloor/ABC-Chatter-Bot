@@ -105,7 +105,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         })
         .level(log::LevelFilter::Warn)
         .level_for("abc_chatter_bot", log::LevelFilter::Debug)
-        .level_for("songbird", log::LevelFilter::Trace)
         .chain(std::io::stdout())
         .chain(fern::log_file("output.log")?)
         .apply()?;
@@ -126,7 +125,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .type_map_insert::<ImageGenNetworkClient>(stable_diffusion_client)
         .type_map_insert::<VoiceGenNetworkClient>(eleven_labs_client)
         .framework(framework)
-        .register_songbird()
+        .register_songbird() // Not immediately apparent, but this does a type_map_insert under the hood, so need to make sure the TypeMap does not get overwritten
         .await?;
 
     client.start().await?;
