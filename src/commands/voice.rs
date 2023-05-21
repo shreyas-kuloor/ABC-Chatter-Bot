@@ -5,9 +5,8 @@ use serenity::{
     model::{channel::Message, prelude::AttachmentType},
     framework::standard::{CommandResult, macros::command, Args},
 };
-use songbird::{Event, TrackEvent};
 
-use crate::{models::network_clients::VoiceGenNetworkClient, services::speech_generation_service::{get_ai_voices, generate_speech_from_prompt}, utils::voice_utils::TrackEndNotifier};
+use crate::{models::network_clients::VoiceGenNetworkClient, services::speech_generation_service::{get_ai_voices, generate_speech_from_prompt}};
 
 #[command]
 async fn voice(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
@@ -46,14 +45,6 @@ async fn voice(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
 
                 fs::write("voice.mp3", &audio_bytes).unwrap();
 
-                handler.add_global_event(
-                    Event::Track(TrackEvent::End),
-                    TrackEndNotifier {
-                        guild_id: guild.id,
-                        ctx: ctx.clone(),
-                    },
-                );
-
                 let source = match songbird::ffmpeg("voice.mp3").await {
                     Ok(source) => source,
                     Err(err) => {
@@ -62,7 +53,7 @@ async fn voice(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
                     }
                 };
 
-                handler.play_source(source);
+                handler.enqueue_source(source);
             }
             else {
                 warn!("Error joining channel.");
