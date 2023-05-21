@@ -41,7 +41,7 @@ pub async fn send_thread_to_ai(client: &OpenAIClient, ctx: &Context, messages: V
 }
 
 
-pub async fn get_emoji_from_ai(client: &OpenAIClient, message: &Message, emoji_list: String) -> Result<String, Box<dyn Error>> {
+pub async fn get_emoji_choice_from_ai(client: &OpenAIClient, message: &Message, emoji_list: String) -> Result<String, Box<dyn Error>> {
     let mut messages = vec![message];
     let chat_messages: Vec<ChatMessage> = messages.iter_mut().map(|m| {
         let prompt = format!("Pick one discord emote from ({}) that best fits the message '{}'. You must respond with only a single word from the list.", emoji_list, m.content);

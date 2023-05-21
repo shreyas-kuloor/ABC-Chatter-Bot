@@ -28,7 +28,7 @@ pub async fn random_react_to_message(ctx: &Context, msg: &Message) -> Result<(),
         if rand_num == 0 {
             let emojis_string = get_server_emoji_names_string(ctx, msg.guild_id).await?;
             if emojis_string.is_some() {
-                let bot_response = get_emoji_from_ai(open_ai_client, msg, emojis_string.unwrap()).await?;
+                let bot_response = get_emoji_choice_from_ai(open_ai_client, msg, emojis_string.unwrap()).await?;
                 let matching_emoji = get_server_emoji_by_name(ctx, msg.guild_id, bot_response).await?;
                 if let Some(emoji) = matching_emoji {
                     msg.react(ctx, emoji.clone()).await?;
