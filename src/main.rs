@@ -85,7 +85,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .level(log::LevelFilter::Warn)
         .level_for("abc_chatter_bot", log::LevelFilter::Debug)
         .chain(std::io::stdout())
-        .chain(fern::log_file("output.log")?)
         .apply()?;
 
     let framework = StandardFramework::new()
