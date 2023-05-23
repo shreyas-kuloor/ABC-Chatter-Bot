@@ -6,6 +6,7 @@ mod services;
 mod errors;
 mod utils;
 
+use dotenv::dotenv;
 use std::env;
 use effects::clear_threads::clear_inactive_threads;
 use effects::leave_empty_channel::leave_empty_voice_channel;
@@ -55,6 +56,8 @@ struct General;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    dotenv().ok();
+
     let token = env::var("DISCORD_BOT_TOKEN")?;
 
     let intents = GatewayIntents::GUILDS
