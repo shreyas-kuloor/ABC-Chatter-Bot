@@ -18,3 +18,4 @@ strfmt = "0.2.4"
 base64 = "0.21.0"
 bytes = "1.4.0"
 songbird = { version = "0.3.2", features = ["serenity-rustls", "driver", "gateway", "builtin-queue"] }
+dotenv = "0.15.0"
