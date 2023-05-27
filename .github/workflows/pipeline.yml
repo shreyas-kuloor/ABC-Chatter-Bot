@@ -36,13 +36,11 @@ jobs:
           docker build -t "${{ vars.REGION }}-docker.pkg.dev/${{ vars.GCLOUD_PROJECT_ID }}/${{ vars.ARTIFACT_REGISTRY_REPO }}/${{ vars.CLOUD_RUN_SERVICE }}:${{ github.sha }}" ./
           docker push "${{ vars.REGION }}-docker.pkg.dev/${{ vars.GCLOUD_PROJECT_ID }}/${{ vars.ARTIFACT_REGISTRY_REPO }}/${{ vars.CLOUD_RUN_SERVICE }}:${{ github.sha }}"
 
-      - name: Deploy to Cloud Run
-        uses: google-github-actions/deploy-cloudrun@v1
+      - name: Deploy to App Engine
+        uses: google-github-actions/deploy-appengine@v1
         with:
-          service: ${{ vars.CLOUD_RUN_SERVICE }}
-          image: ${{ vars.REGION }}-docker.pkg.dev/${{ vars.GCLOUD_PROJECT_ID }}/${{ vars.ARTIFACT_REGISTRY_REPO }}/${{ vars.CLOUD_RUN_SERVICE }}:${{ github.sha }}
-          region: ${{ vars.REGION }}
-          flags: '--min-instances=1 --no-cpu-throttling'
+          project_id: ${{ vars.GCLOUD_PROJECT_ID }}
+          image_url: ${{ vars.REGION }}-docker.pkg.dev/${{ vars.GCLOUD_PROJECT_ID }}/${{ vars.ARTIFACT_REGISTRY_REPO }}/${{ vars.CLOUD_RUN_SERVICE }}:${{ github.sha }}
           env_vars: |
             DISCORD_BOT_TOKEN=${{ secrets.DISCORD_BOT_TOKEN }}
             THREAD_MESSAGE_LIMIT=${{ vars.THREAD_MESSAGE_LIMIT }}
