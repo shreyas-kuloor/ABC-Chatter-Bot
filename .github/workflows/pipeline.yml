@@ -36,7 +36,11 @@ jobs:
 
   deploy_to_cloud_run:
     name: Deploy Bot to Cloud Run
+    needs: push_to_registry
     runs-on: ubuntu-latest
+    permissions:
+      contents: 'read'
+      id-token: 'write'
     steps:
       - name: Checkout to the repo
         uses: actions/checkout@v3
@@ -51,7 +55,7 @@ jobs:
         uses: google-github-actions/deploy-cloudrun@v1
         with:
           service: abc-chatter-bot
-          image: us-docker.pkg.dev/shreyaskuloor/abc_chatter_bot/abc_chatter_bot:latest
+          image: us-docker.pkg.dev/shreyaskuloor/abc_chatter_bot/abc_chatter_bot:main
           region: us-central1
           flags: '--min-instances=1 --no-cpu-throttling'
           env_vars: |
