@@ -33,15 +33,15 @@ jobs:
       
       - name: Build and Push Docker image
         run: |-
-          docker build -t "us-docker.pkg.dev/${{ vars.GCLOUD_PROJECT_ID }}/${{ vars.ARTIFACT_REGISTRY_REPO }}/${{ vars.CLOUD_RUN_SERVICE }}:${{ github.sha }}" ./
-          docker push "us-docker.pkg.dev/${{ vars.GCLOUD_PROJECT_ID }}/${{ vars.ARTIFACT_REGISTRY_REPO }}/${{ vars.CLOUD_RUN_SERVICE }}:${{ github.sha }}"
+          docker build -t "${{ vars.REGION }}-docker.pkg.dev/${{ vars.GCLOUD_PROJECT_ID }}/${{ vars.ARTIFACT_REGISTRY_REPO }}/${{ vars.CLOUD_RUN_SERVICE }}:${{ github.sha }}" ./
+          docker push "${{ vars.REGION }}-docker.pkg.dev/${{ vars.GCLOUD_PROJECT_ID }}/${{ vars.ARTIFACT_REGISTRY_REPO }}/${{ vars.CLOUD_RUN_SERVICE }}:${{ github.sha }}"
 
       - name: Deploy to Cloud Run
         uses: google-github-actions/deploy-cloudrun@v1
         with:
           service: ${{ vars.CLOUD_RUN_SERVICE }}
-          image: us-docker.pkg.dev/${{ vars.GCLOUD_PROJECT_ID }}/${{ vars.ARTIFACT_REGISTRY_REPO }}/${{ vars.CLOUD_RUN_SERVICE }}:${{ github.sha }}
-          region: us-central1
+          image: ${{ vars.REGION }}-docker.pkg.dev/${{ vars.GCLOUD_PROJECT_ID }}/${{ vars.ARTIFACT_REGISTRY_REPO }}/${{ vars.CLOUD_RUN_SERVICE }}:${{ github.sha }}
+          region: ${{ vars.REGION }}
           flags: '--min-instances=1 --no-cpu-throttling'
           env_vars: |
             DISCORD_BOT_TOKEN=${{ secrets.DISCORD_BOT_TOKEN }}
