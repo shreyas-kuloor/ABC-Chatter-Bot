@@ -52,11 +52,11 @@ pub struct ChatRequest {
 }
 
 impl ChatRequest {
-    pub fn new(existing_messages: Vec<ChatMessage>) -> Self {
+    pub fn new(system_instruction: String, existing_messages: Vec<ChatMessage>) -> Self {
         let model = env::var("OPENAI_MODEL").unwrap();
 
         let mut messages = Vec::new();
-        messages.push(ChatMessage::new(Role::System, env::var("OPENAI_SYSTEM_CONTENT").unwrap()));
+        messages.push(ChatMessage::new(Role::System, system_instruction));
         messages.extend(existing_messages);
 
         Self {
