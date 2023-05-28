@@ -1,4 +1,4 @@
-use std::error::Error;
+use std::{error::Error, env};
 
 use reqwest::Method;
 use serenity::{
@@ -24,7 +24,7 @@ pub async fn send_thread_to_ai(client: &OpenAIClient, ctx: &Context, messages: V
         ChatMessage::new(role, m.content.clone().to_string())
     }).collect();
 
-    let ai_request = ChatRequest::new(chat_messages);
+    let ai_request = ChatRequest::new(env::var("CHAT_SYSTEM_INSTRUCTION").unwrap(), chat_messages);
 
     let message_content = match client.send_request::<ChatRequest, ChatResponse>("chat/completions".to_string(), Method::POST, Some(ai_request)).await {
         Ok(resp) => resp.choices[0].message.content.clone(),
@@ -44,11 +44,11 @@ pub async fn send_thread_to_ai(client: &OpenAIClient, ctx: &Context, messages: V
 pub async fn get_emoji_choice_from_ai(client: &OpenAIClient, message: &Message, emoji_list: String) -> Result<String, Box<dyn Error>> {
     let mut messages = vec![message];
     let chat_messages: Vec<ChatMessage> = messages.iter_mut().map(|m| {
-        let prompt = format!("Pick one discord emote from ({}) that best fits the message '{}'. You must respond with only a single word from the list.", emoji_list, m.content);
+        let prompt = format!("Message: {}. Emotes: ({}). Do not explain your reasoning. You must respond with only a single emote from the list.", emoji_list, m.content);
         ChatMessage::new(Role::User, prompt)
     }).collect();
 
-    let ai_request = ChatRequest::new(chat_messages);
+    let ai_request = ChatRequest::new(env::var("EMOJI_SYSTEM_INSTRUCTION").unwrap(), chat_messages);
 
     let message_content = match client.send_request::<ChatRequest, ChatResponse>("chat/completions".to_string(), Method::POST, Some(ai_request)).await {
         Ok(resp) => resp.choices[0].message.content.clone(),
